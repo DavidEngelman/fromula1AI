@@ -1,3 +1,5 @@
 .idea/
 venv*/
-f1_data/
+AIPilot/f1_data/
+AIPilot/logs/
+dataCollection/logs
