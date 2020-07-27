@@ -3,3 +3,4 @@ venv*/
 AIPilot/f1_data/
 AIPilot/logs/
 dataCollection/logs
+AIPilot/checkpoints

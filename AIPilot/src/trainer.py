@@ -18,7 +18,7 @@ from model import CNN
 
 
 class Trainer(object):
-    def __init__(self, model, train_loader=None, val_loader=None):
+    def __init__(self, model, output_name, train_loader=None, val_loader=None):
         self.model = model
         # self.criterion = nn.NLLLoss()
         self.criterion = torch.nn.BCELoss()
@@ -36,15 +36,29 @@ class Trainer(object):
 
         self.log = logging.getLogger(self.__class__.__name__)
         logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
-        self.writer = SummaryWriter(log_dir="../logs")
+        self.writer = SummaryWriter(f"../logs/{output_name}")
 
         self.print_size = 10
+        self.output = output_name
 
-    def loop(self, epochs=35):
-        for epoch in range(epochs):
+    def loop(self, epochs=35, start_epoch=0):
+        for epoch in range(start_epoch, start_epoch + epochs):
             print("Starting Epoch: ", epoch)
             self.train(epoch)
             self.val(epoch)
+            self.checkpoint(epoch)
+
+    def checkpoint(self, epoch):
+        if not os.path.exists('../checkpoints'):
+            os.makedirs('../checkpoints')
+
+        state = {
+            'epoch': epoch,
+            'state_dict': self.model.state_dict(),
+            'optimizer': self.optimizer.state_dict(),
+            }
+
+        torch.save(state, "../checkpoints/{}_{}.pt".format(self.output, epoch))
 
     def train(self, epoch):
 
@@ -123,12 +137,14 @@ class Trainer(object):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--output", help="Name of the logging file", required=True)
-    parser.add_argument("--data_root", help="Name of the data file", required=True)
+    parser.add_argument("--output", help="path of the logging file", required=True)
+    parser.add_argument("--data_root", help="path of the data file", required=True)
+    parser.add_argument("--checkpoint", help="path of the checkpoint file")
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--n_classes", type=int, default=4)
 
     args = parser.parse_args()
+
 
     transformations = transforms.Compose([
         transforms.ToTensor(),
@@ -143,22 +159,34 @@ def main():
                             n_classes=args.n_classes)
     val_dataloader = DataLoader(val_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4)
 
-    if not os.path.exists('../OUTPUT'):
-        os.makedirs('OUTPUT')
+    if not os.path.exists('../trained_models'):
+        os.makedirs('../trained_models')
 
-    output = 'OUTPUT/{}'.format(args.output)
+    output = '../trained_models/{}'.format(args.output)
 
     pretrained = models.resnet50(pretrained=True)
 
     cnn = CNN(pretrained, n_classes=4)
+    print(type(cnn))
+    start_epoch = 0
+
+    if args.checkpoint:
+        with open(args.checkpoint, 'rb') as f:
+            checkpoint = torch.load(f)
+        pretrained_state_dict = checkpoint['state_dict']
+        start_epoch = checkpoint['epoch']
+        cnn.load_state_dict(pretrained_state_dict)
+
+
 
     trainer = Trainer(
         model=cnn,
+        output_name=args.output,
         train_loader=train_dataloader,
         val_loader=val_dataloader,
     )
 
-    trainer.loop()
+    trainer.loop(epochs=20, start_epoch=start_epoch)
     torch.save(trainer.model.state_dict(), "{}.pt".format(output))
 
 
