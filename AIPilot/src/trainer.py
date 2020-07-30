@@ -5,7 +5,7 @@ import logging
 import sys
 import os
 
-from torchvision import datasets, models, transforms
+from torchvision import transforms
 
 import torch.optim as optim
 import torch.nn as nn
@@ -142,6 +142,7 @@ def main():
     parser.add_argument("--checkpoint", help="path of the checkpoint file")
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--n_classes", type=int, default=4)
+    parser.add_argument("--epochs", type=int, required=True)
 
     args = parser.parse_args()
 
@@ -164,9 +165,7 @@ def main():
 
     output = '../trained_models/{}'.format(args.output)
 
-    pretrained = models.resnet50(pretrained=True)
-
-    cnn = CNN(pretrained, n_classes=4)
+    cnn = CNN(n_classes=4)
     print(type(cnn))
     start_epoch = 0
 
@@ -174,7 +173,7 @@ def main():
         with open(args.checkpoint, 'rb') as f:
             checkpoint = torch.load(f)
         pretrained_state_dict = checkpoint['state_dict']
-        start_epoch = checkpoint['epoch']
+        start_epoch = checkpoint['epoch'] + 1
         cnn.load_state_dict(pretrained_state_dict)
 
 
@@ -186,7 +185,7 @@ def main():
         val_loader=val_dataloader,
     )
 
-    trainer.loop(epochs=20, start_epoch=start_epoch)
+    trainer.loop(epochs=args.epochs, start_epoch=start_epoch)
     torch.save(trainer.model.state_dict(), "{}.pt".format(output))
 
 

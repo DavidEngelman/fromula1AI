@@ -38,5 +38,5 @@ def plot_tensorflow_log(path):
 
 
 if __name__ == '__main__':
-    log_file = "../logs/cnn_keyboard_1/events.out.tfevents.1595796418.DESKTOP-CND0H6K.11420.0"
+    log_file = "..\logs\cnn_keyboard_1\events.out.tfevents.1595846361.DESKTOP-CND0H6K.9668.0"
     plot_tensorflow_log(log_file)
